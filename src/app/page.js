@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function Home() {
+// 1. KOMPONEN UTAMA KONTEN BERANDA
+function MovieListContent() {
   const [movies, setMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
@@ -110,7 +111,7 @@ export default function Home() {
                     key={movie.tmdbId} 
                     href={`/movie/${movie.tmdbId}`}
                     onClick={() => setShowSuggestions(false)}
-                    className="flex items-center gap-3 p-2 hover:bg-zinc-900 border-b border-zinc-800/40 last:border-0 transition-colors group"
+                    className="flex items-center gap-3 p-2 hover:bg-zinc-900 border-b border-zinc-8/40 last:border-0 transition-colors group"
                   >
                     <img 
                       src={movie.poster} 
@@ -217,5 +218,18 @@ export default function Home() {
       </footer>
 
     </div>
+  );
+}
+
+// 2. EXPORT DEFAULT UTAMA YANG DIBUNGKUS SUSPENSE (SYARAT MUTLAK VERCEL)
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center text-xs animate-pulse">
+        Menghubungkan Jaringan KawanMovies21...
+      </div>
+    }>
+      <MovieListContent />
+    </Suspense>
   );
 }
