@@ -53,7 +53,6 @@ export default function MovieDetail({ params }) {
           id: key,
           ...data[key]
         }));
-        // Mengurutkan komentar agar yang terbaru berada di susunan paling atas
         setComments(commentList.reverse());
       } else {
         setComments([]);
@@ -66,12 +65,11 @@ export default function MovieDetail({ params }) {
     };
   }, [tmdbId]);
 
-  // Fungsi mengirim komentar baru ke Firebase Cloud publik
+  // Fungsi mengirim komentar baru ke Firebase Cloud
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentName.trim() || !commentText.trim()) return alert('Nama dan isi komentar wajib diisi!');
 
-    // Buat objek komentar baru mengikuti struktur LK21 milikmu
     const newComment = {
       tmdbId: tmdbId,
       name: commentName,
@@ -90,7 +88,6 @@ export default function MovieDetail({ params }) {
       const newCommentRef = push(movieCommentsRef);
       await set(newCommentRef, newComment);
 
-      // Reset isi form komentar
       setCommentText('');
       alert('Komentar kamu berhasil diterbitkan di server cloud!');
     } catch (err) {
@@ -110,10 +107,18 @@ export default function MovieDetail({ params }) {
     return (
       <div className="min-h-screen bg-[#141414] text-white flex flex-col items-center justify-center gap-4">
         <h1 className="text-xl font-bold text-red-600">Film Tidak Ditemukan atau Belum Di-publish! 😢</h1>
-        <a href="/" className="text-xs bg-[#e91e63] px-4 py-2 rounded-sm font-bold">Kembali ke Beranda</a>
+        <Link className="text-xs bg-[#e91e63] px-4 py-2 rounded-sm font-bold" href="/">
+          Kembali ke Beranda
+        </Link>
       </div>
     );
   }
+
+  // JALUR FORMULA QUICK LINK RESMI SAFELINKU (Dijamin Lolos Iklan & Anti-Error 404)
+  const safelinkuApiKey = "8d2eebd627f6134575daa591d2f4460c812363a8";
+  const encryptedUrl = movie.downloadServer1 
+    ? `https://sfl.gl/st/?api=${safelinkuApiKey}&url=${encodeURIComponent(movie.downloadServer1)}`
+    : '#';
 
   return (
     <div className="min-h-screen bg-[#141414] text-slate-200 antialiased font-sans">
@@ -121,13 +126,13 @@ export default function MovieDetail({ params }) {
       {/* HEADER TOPBAR */}
       <header className="bg-black border-b border-zinc-800 shadow-md">
         <div className="max-w-[1000px] mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/" className="hover:opacity-90 transition-opacity">
+          <Link className="hover:opacity-90 transition-opacity" href="/">
             <h1 className="text-xl font-black text-white tracking-tighter uppercase cursor-pointer">
               🎬 KAWAN<span className="text-[#e91e63]">MOVIES21</span>
             </h1>
           </Link>
-          <Link href="/" className="text-[11px] bg-[#e91e63] hover:bg-[#c2185b] text-white font-bold px-4 py-2 rounded-sm transition-colors uppercase">
-            Exit ⬅️ Kembali
+          <Link className="text-[11px] bg-[#e91e63] hover:bg-[#c2185b] text-white font-bold px-4 py-2 rounded-sm transition-colors uppercase" href="/">
+            ⬅️ Kembali
           </Link>
         </div>
       </header>
@@ -166,10 +171,10 @@ export default function MovieDetail({ params }) {
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <h2 className="text-lg font-black text-white uppercase tracking-tight">{movie.title}</h2>
             <span className="bg-amber-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded-sm">⭐ {movie.ratingScore || movie.rating}</span>
-            <Link href={`/?filter=${movie.year}`} className="bg-[#e91e63] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm hover:opacity-80 transition-opacity">
+            <Link className="bg-[#e91e63] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm hover:opacity-80 transition-opacity" href={`/?filter=${movie.year}`}>
               {movie.year}
             </Link>
-            <Link href={`/?filter=${movie.quality || ''}`} className="bg-blue-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-sm uppercase hover:bg-blue-700 transition-colors">
+            <Link className="bg-blue-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-sm uppercase hover:bg-blue-700 transition-colors" href={`/?filter=${movie.quality || 'HD'}`}>
               {movie.quality || 'HD'}
             </Link>
           </div>
@@ -180,28 +185,28 @@ export default function MovieDetail({ params }) {
             <p>
               <span className="text-zinc-500 font-bold uppercase inline-block w-24">Genre:</span> 
               <span className="inline-flex flex-wrap gap-1">
-                {movie.genre ? movie.genre.split(', ').map((g, idx) => (
-                  <Link key={idx} href={`/?filter=${g}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">
-                    {g}{idx < movie.genre.split(', ').length - 1 ? ',' : ''}
+                {movie.genre ? movie.genre.split(', ').map((g, idx, arr) => (
+                  <Link className="text-blue-400 hover:text-[#e91e63] hover:underline" href={`/?filter=${g}`} key={idx}>
+                    {g}{idx < arr.length - 1 ? ', ' : ''}
                   </Link>
-                ))}
+                )) : '-'}
               </span>
             </p>
-            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Kualitas:</span> <Link href={`/?filter=${movie.quality || 'HD'}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">{movie.quality || 'HD'}</Link></p>
-            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Tahun:</span> <Link href={`/?filter=${movie.year}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">{movie.year}</Link></p>
+            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Kualitas:</span> <Link className="text-blue-400 hover:text-[#e91e63] hover:underline" href={`/?filter=${movie.quality || 'HD'}`}>{movie.quality || 'HD'}</Link></p>
+            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Tahun:</span> <Link className="text-blue-400 hover:text-[#e91e63] hover:underline" href={`/?filter=${movie.year}`}>{movie.year}</Link></p>
             <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Durasi:</span> {movie.runtime || 'N/A'}</p>
-            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Negara:</span> <Link href={`/?filter=${movie.country || 'USA'}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">{movie.country || 'USA'}</Link></p>
+            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Negara:</span> <Link className="text-blue-400 hover:text-[#e91e63] hover:underline" href={`/?filter=${movie.country || 'USA'}`}>{movie.country || 'USA'}</Link></p>
             <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Rilis:</span> {movie.releaseDateFull || movie.year}</p>
             <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Bahasa:</span> {movie.language || 'English'}</p>
             <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Anggaran:</span> {movie.budget || '-'}</p>
             <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Pendapatan:</span> {movie.revenue || '-'}</p>
-            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Direksi:</span> <Link href={`/?filter=${movie.director || 'Unknown'}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">{movie.director || 'Unknown'}</Link></p>
+            <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Direksi:</span> <Link className="text-blue-400 hover:text-[#e91e63] hover:underline" href={`/?filter=${movie.director || 'Unknown'}`}>{movie.director || 'Unknown'}</Link></p>
             <p>
               <span className="text-zinc-500 font-bold uppercase inline-block w-24">Pemain:</span> 
               <span className="inline-flex flex-wrap gap-1">
-                {movie.cast ? movie.cast.split(', ').map((c, idx) => (
-                  <Link key={idx} href={`/?filter=${c}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">
-                    {c}{idx < movie.cast.split(', ').length - 1 ? ',' : ''}
+                {movie.cast ? movie.cast.split(', ').map((c, idx, arr) => (
+                  <Link className="text-blue-400 hover:text-[#e91e63] hover:underline" href={`/?filter=${c}`} key={idx}>
+                    {c}{idx < arr.length - 1 ? ', ' : ''}
                   </Link>
                 )) : '-'}
               </span>
@@ -219,12 +224,17 @@ export default function MovieDetail({ params }) {
         {/* CONTAINER DOWNLOAD BOX */}
         <div className="mt-4 bg-[#1a1a1a] border border-zinc-800 p-5 rounded shadow-md">
           <h3 className="text-xs font-bold text-white uppercase mb-4 border-l-4 border-[#e91e63] pl-2 tracking-wider">
-            Link Download Pilihan
+            Link Download
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {movie.downloadServer1 ? (
-              <a href={movie.downloadServer1} target="_blank" rel="noopener noreferrer" className="text-[11px] py-2.5 rounded-sm font-extrabold bg-blue-600 hover:bg-blue-700 text-white transition-colors text-center block uppercase tracking-wide shadow-md">
-                📥 Download Server 1 (Klik Sini)
+              <a 
+                href={encryptedUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[11px] py-2.5 rounded-sm font-extrabold bg-blue-600 hover:bg-blue-700 text-white transition-colors text-center block uppercase tracking-wide shadow-md px-2"
+              >
+                📥 DOWNLOAD FILM {movie.title} ({movie.year})
               </a>
             ) : (
               <div className="text-center sm:col-span-2 py-4 bg-zinc-950/50 rounded border border-zinc-900">
@@ -234,14 +244,13 @@ export default function MovieDetail({ params }) {
           </div>
         </div>
 
-        {/* ==================== 💬 FITUR BARU: KOTAK KOMENTAR LK21 ==================== */}
+        {/* KOLOM KOMENTAR LK21 */}
         <div className="mt-4 bg-[#1a1a1a] border border-zinc-800 p-5 rounded shadow-md">
           <h3 className="text-xs font-bold text-white uppercase mb-4 border-l-4 border-emerald-600 pl-2 tracking-wider flex justify-between items-center">
             <span>💬 Kolom Komentar / Laporan Kendala</span>
             <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-sm normal-case font-medium">{comments.length} Komentar</span>
           </h3>
 
-          {/* Form Kirim Komentar */}
           <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3 bg-zinc-950/50 p-4 rounded border border-zinc-900 mb-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <input 
@@ -267,7 +276,6 @@ export default function MovieDetail({ params }) {
             </button>
           </form>
 
-          {/* List Daftar Komentar yang Masuk */}
           <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
             {comments.map((c) => (
               <div key={c.id} className="bg-zinc-950/20 border border-zinc-900/60 p-3 rounded-sm flex flex-col gap-1.5">
@@ -289,7 +297,6 @@ export default function MovieDetail({ params }) {
 
       </main>
 
-      {/* FOOTER */}
       <footer className="mt-16 bg-black border-t border-zinc-900 py-4 text-center text-[10px] text-zinc-600 font-medium">
         &copy; 2026 KAWANMOVIES21.
       </footer>

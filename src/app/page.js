@@ -180,52 +180,58 @@ function MovieListContent() {
         {filteredMovies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filteredMovies.map((movie) => (
-              <div key={movie.id} className="bg-[#1a1a1a] border border-zinc-800 hover:border-zinc-700 rounded shadow-md overflow-hidden relative group flex flex-col justify-between">
-                
-                <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
-                  <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-                  
-                  <span className={`absolute top-1 right-1 text-[9px] font-extrabold px-1 py-0.5 rounded-sm shadow-sm tracking-tighter text-white ${
-                    movie.quality === 'Bluray' ? 'bg-blue-600' : 
-                    movie.quality === 'CAM' || movie.quality === 'HDCAM' ? 'bg-amber-600' : 'bg-emerald-600'
-                  }`}>
-                    {movie.quality || 'HD'}
-                  </span>
+  <Link 
+    key={movie.id} 
+    href={`/movie/${movie.tmdbId}`}
+    className="bg-[#1a1a1a] border border-zinc-800 hover:border-zinc-700 rounded shadow-md overflow-hidden relative group flex flex-col justify-between cursor-pointer transition-all"
+  >
+    {/* BAGIAN POSTER GAMBAR */}
+    <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
+      <img 
+        src={movie.poster} 
+        alt={movie.title} 
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" 
+      />
+      
+      <span className={`absolute top-1 right-1 text-[9px] font-extrabold px-1 py-0.5 rounded-sm shadow-sm tracking-tighter text-white ${
+        movie.quality === 'Bluray' ? 'bg-blue-600' : 
+        movie.quality === 'CAM' || movie.quality === 'HDCAM' ? 'bg-amber-600' : 'bg-emerald-600'
+      }`}>
+        {movie.quality || 'HD'}
+      </span>
 
-                  <span className="absolute top-1 left-1 bg-black/80 text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 border border-zinc-800">
-                    ⭐ <span className="text-white font-bold text-[9px]">{movie.ratingScore || movie.rating}</span>
-                  </span>
+      <span className="absolute top-1 left-1 bg-black/80 text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 border border-zinc-800">
+        ⭐ <span className="text-white font-bold text-[9px]">{movie.ratingScore || movie.rating}</span>
+      </span>
 
-                  <span className="absolute bottom-1 left-1 bg-black/70 text-zinc-400 text-[9px] font-medium px-1 rounded-sm">
-                    {movie.year}
-                  </span>
+      <span className="absolute bottom-1 left-1 bg-black/70 text-zinc-400 text-[9px] font-medium px-1 rounded-sm">
+        {movie.year}
+      </span>
 
-                  {movie.runtime && movie.runtime !== 'N/A' && (
-                    <span className="absolute bottom-1 right-1 bg-black/70 text-zinc-300 text-[9px] font-bold px-1 rounded-sm flex items-center gap-1">
-                      🕒 {movie.runtime}
-                    </span>
-                  )}
-                </div>
+      {movie.runtime && movie.runtime !== 'N/A' && (
+        <span className="absolute bottom-1 right-1 bg-black/70 text-zinc-300 text-[9px] font-bold px-1 rounded-sm flex items-center gap-1">
+          🕒 {movie.runtime}
+        </span>
+      )}
+    </div>
 
-                <div className="p-2 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#1a1a1a]">
-                  <div>
-                    <h3 className="font-bold text-[11px] text-zinc-300 line-clamp-1 leading-tight group-hover:text-[#e91e63] transition-colors mb-0.5" title={movie.title}>
-                      {movie.title}
-                    </h3>
-                    <p className="text-[9px] text-zinc-500 font-medium truncate mb-2">
-                      {movie.genre || 'Movie'}
-                    </p>
-                  </div>
-                  
-                  <Link href={`/movie/${movie.tmdbId}`}>
-                    <button className="w-full bg-[#2a2a2a] hover:bg-[#e91e63] text-white font-extrabold text-[9px] py-1.5 rounded-sm uppercase tracking-wide transition-all shadow-md">
-                      Nonton Film
-                    </button>
-                  </Link>
-                </div>
-
-              </div>
-            ))}
+    {/* BAGIAN DETAIL TEKS & TOMBOL */}
+    <div className="p-2 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#1a1a1a]">
+      <div>
+        <h3 className="font-bold text-[11px] text-zinc-300 line-clamp-1 leading-tight group-hover:text-[#e91e63] transition-colors mb-0.5" title={movie.title}>
+          {movie.title} ({movie.year})
+        </h3>
+        <p className="text-[9px] text-zinc-500 font-medium truncate mb-2">
+          {movie.genre || 'Movie'}
+        </p>
+      </div>
+      
+      <div className="w-full bg-[#2a2a2a] group-hover:bg-[#e91e63] text-white font-extrabold text-[9px] py-1.5 rounded-sm uppercase tracking-wide transition-all shadow-md text-center">
+        Nonton Film
+      </div>
+    </div>
+  </Link>
+))}
           </div>
         ) : (
           <div className="text-center py-20 bg-[#1a1a1a] rounded border border-zinc-900">
