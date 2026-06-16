@@ -1,12 +1,29 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getDatabase, ref, set, onValue, remove } from 'firebase/database';
+
+// Konfigurasi Firebase asli milikmu
+const firebaseConfig = {
+  apiKey: "AIzaSyDq136HivVcOX9cqZ7VnPliiZP5xWiD1aM",
+  authDomain: "kawanmovies21-c3ec5.firebaseapp.com",
+  databaseURL: "https://kawanmovies21-c3ec5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kawanmovies21-c3ec5",
+  storageBucket: "kawanmovies21-c3ec5.firebasestorage.app",
+  messagingSenderId: "65122230605",
+  appId: "1:65122230605:web:6986575e5ace3ade24d704",
+  measurementId: "G-DK2WJ016BW"
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getDatabase(app);
 
 const TMDB_API_KEY = '9efcf4701dc93f8f070428b8a1f75a8f';
 
 export default function AdminPanel() {
-  // Kredensial Login Admin Rahasia
+  // Kredensial Login Admin Rahasia milikmu
   const ADMIN_USERNAME = 'adynr17';
-  const ADMIN_PASSWORD = 'adynr17import'; // <--- Silakan ganti password-mu di sini
+  const ADMIN_PASSWORD = 'adynr17import';
 
   // State Keamanan Login
   const [usernameInput, setUsernameInput] = useState('');
@@ -24,15 +41,28 @@ export default function AdminPanel() {
   const [publishedMovies, setPublishedMovies] = useState([]);
   const [message, setMessage] = useState('');
 
-  // Cek apakah admin sudah login sebelumnya di sesi browser ini
+  // Sinkronisasi Sesi Browser & Real-time Database Firebase
   useEffect(() => {
     const sessionToken = sessionStorage.getItem('kawanmovies_admin_session');
     if (sessionToken === 'authenticated_true') {
       setIsLoggedIn(true);
     }
 
-    const saved = localStorage.getItem('kawanmovies_db');
-    if (saved) setPublishedMovies(JSON.parse(saved));
+    // Menarik katalog aktif sedunia dari Firebase Cloud secara real-time
+    const moviesRef = ref(db, 'movies');
+    const unsubscribe = onValue(moviesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Mengubah objek Firebase menjadi array terurut untuk daftar list admin
+        const movieList = Object.keys(data).map(key => data[key]);
+        // Mengurutkan berdasarkan urutan input terbaru di atas
+        setPublishedMovies(movieList.reverse());
+      } else {
+        setPublishedMovies([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Fungsi Menangani Proses Login
@@ -55,7 +85,7 @@ export default function AdminPanel() {
     setPasswordInput('');
   };
 
-  // MESIN GOOGLE TRANSLATE GRATISAN
+  // MESIN GOOGLE TRANSLATE GRATISAN BAWAAN KODEMU
   const translateToIndonesia = async (text) => {
     if (!text) return '';
     try {
@@ -69,7 +99,7 @@ export default function AdminPanel() {
     }
   };
 
-  // Fungsi Impor Film dari TMDB
+  // Fungsi Impor Film dari TMDB ke Firebase Cloud
   const handlePublish = async (e) => {
     e.preventDefault();
     if (!tmdbId) return alert('ID TMDB wajib diisi!');
@@ -166,27 +196,32 @@ export default function AdminPanel() {
         cast: finalCast
       };
 
-      const updatedList = [newMovie, ...publishedMovies];
-      setPublishedMovies(updatedList);
-      localStorage.setItem('kawanmovies_db', JSON.stringify(updatedList));
+      // AKSI PUBLISH LANGSUNG MASUK KE SERVER CLOUD FIREBASE GOOGLE
+      const singleMovieRef = ref(db, `movies/${tmdbId}`);
+      await set(singleMovieRef, newMovie);
 
       setTmdbId(''); setEmbedUrl(''); setDownloadUrl(''); setCustomGenre(''); setCustomYear(''); setQuality('HD');
-      setMessage('✅ Berhasil mengimpor data film super lengkap!');
+      setMessage('✅ Berhasil mengimpor data film super lengkap ke Firebase Cloud!');
     } catch (err) {
       alert(err.message);
       setMessage('');
     }
   };
 
-  const handleDelete = (id) => {
-    if (confirm('Hapus film ini dari beranda?')) {
-      const filtered = publishedMovies.filter(m => m.tmdbId !== id);
-      setPublishedMovies(filtered);
-      localStorage.setItem('kawanmovies_db', JSON.stringify(filtered));
+  // FUNGSI HAPUS FILM ONLINE LANGSUNG DARI FIREBASE
+  const handleDelete = async (id) => {
+    if (confirm('Hapus film ini dari beranda publik sedunia?')) {
+      try {
+        const singleMovieRef = ref(db, `movies/${id}`);
+        await remove(singleMovieRef);
+        alert('Film sukses dihapus dari server cloud!');
+      } catch (err) {
+        alert('Gagal menghapus data dari Firebase.');
+      }
     }
   };
 
-  // TAMPILAN GERBANG LOGIN (Jika belum terautentikasi)
+  // TAMPILAN GERBANG LOGIN
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center p-4 antialiased font-sans">
@@ -236,7 +271,7 @@ export default function AdminPanel() {
     );
   }
 
-  // TAMPILAN UTAMA PANEL ADMIN IMPORTER (Jika sudah sukses login)
+  // TAMPILAN UTAMA PANEL ADMIN IMPORTER DENGAN DATA FIREBASE
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-5xl mx-auto">

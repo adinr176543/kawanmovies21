@@ -2,8 +2,25 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getDatabase, ref, onValue } from 'firebase/database';
 
-// 1. KOMPONEN UTAMA KONTEN BERANDA
+// Konfigurasi Firebase resmi milikmu
+const firebaseConfig = {
+  apiKey: "AIzaSyDq136HivVcOX9cqZ7VnPliiZP5xWiD1aM",
+  authDomain: "kawanmovies21-c3ec5.firebaseapp.com",
+  databaseURL: "https://kawanmovies21-c3ec5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kawanmovies21-c3ec5",
+  storageBucket: "kawanmovies21-c3ec5.firebasestorage.app",
+  messagingSenderId: "65122230605",
+  appId: "1:65122230605:web:6986575e5ace3ade24d704",
+  measurementId: "G-DK2WJ016BW"
+};
+
+// Mencegah inisialisasi ganda di Next.js
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getDatabase(app);
+
 function MovieListContent() {
   const [movies, setMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,9 +31,22 @@ function MovieListContent() {
   const router = useRouter();
   const searchContainerRef = useRef(null);
 
+  // Mengambil data FILM secara online & REAL-TIME dari Firebase Cloud
   useEffect(() => {
-    const saved = localStorage.getItem('kawanmovies_db');
-    if (saved) setMovies(JSON.parse(saved));
+    const moviesRef = ref(db, 'movies');
+    const unsubscribe = onValue(moviesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Mengubah format objek Firebase menjadi Array agar bisa di-mapping
+        const movieList = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        setMovies(movieList.reverse()); // Film yang baru diinput muncul paling atas
+      } else {
+        setMovies([]);
+      }
+    });
 
     const filterParam = searchParams.get('filter');
     if (filterParam) {
@@ -24,9 +54,11 @@ function MovieListContent() {
     } else {
       setActiveFilter('');
     }
+
+    return () => unsubscribe();
   }, [searchParams]);
 
-  // Menutup dropdown live search jika user mengklik di luar area kotak pencarian
+  // Tutup live search dropdown jika klik di luar area input
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
@@ -37,20 +69,16 @@ function MovieListContent() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter film untuk pengisian daftar saran (suggestions) di bawah kolom input
   const liveSuggestions = movies.filter((movie) => {
     if (!searchQuery) return false;
     return movie.title.toLowerCase().includes(searchQuery.toLowerCase());
-  }).slice(0, 5); // Batasi maksimal 5 rekomendasi melayang agar rapi
+  }).slice(0, 5);
 
-  // Filter film utama untuk list poster di bawah
   const filteredMovies = movies.filter((movie) => {
     const query = searchQuery.toLowerCase();
     const filter = activeFilter.toLowerCase();
 
-    if (searchQuery) {
-      return movie.title.toLowerCase().includes(query);
-    }
+    if (searchQuery) return movie.title.toLowerCase().includes(query);
 
     if (activeFilter) {
       return (
@@ -62,7 +90,6 @@ function MovieListContent() {
         (movie.cast && movie.cast.toLowerCase().includes(filter))
       );
     }
-
     return true;
   });
 
@@ -79,7 +106,7 @@ function MovieListContent() {
             </h1>
           </Link>
 
-          {/* KOTAK PENCARIAN FILM DENGAN LIVE SEARCH */}
+          {/* KOTAK PENCARIAN FILM */}
           <div ref={searchContainerRef} className="w-full sm:w-[350px] relative">
             <input
               type="text"
@@ -103,7 +130,7 @@ function MovieListContent() {
               </button>
             )}
 
-            {/* DROPDOWN LIVE SEARCH REKOMENDASI MELAYANG */}
+            {/* DROPDOWN LIVE SEARCH */}
             {showSuggestions && liveSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 mt-1.5 bg-[#1a1a1a] border border-zinc-800 rounded shadow-2xl overflow-hidden z-50">
                 {liveSuggestions.map((movie) => (
@@ -111,13 +138,9 @@ function MovieListContent() {
                     key={movie.tmdbId} 
                     href={`/movie/${movie.tmdbId}`}
                     onClick={() => setShowSuggestions(false)}
-                    className="flex items-center gap-3 p-2 hover:bg-zinc-900 border-b border-zinc-8/40 last:border-0 transition-colors group"
+                    className="flex items-center gap-3 p-2 hover:bg-zinc-900 border-b border-zinc-800/40 last:border-0 transition-colors group"
                   >
-                    <img 
-                      src={movie.poster} 
-                      alt="" 
-                      className="w-7 h-10 object-cover rounded-sm border border-zinc-800"
-                    />
+                    <img src={movie.poster} alt="" className="w-7 h-10 object-cover rounded-sm border border-zinc-800" />
                     <div className="overflow-hidden">
                       <h4 className="text-[11px] font-bold text-zinc-200 group-hover:text-[#e91e63] truncate transition-colors">
                         {movie.title}
@@ -142,7 +165,7 @@ function MovieListContent() {
         </div>
       </div>
 
-      {/* KONTEN UTAMA */}
+      {/* KONTEN UTAMA POSTER FILM */}
       <main className="max-w-[1200px] mx-auto px-4 py-6">
         
         <div className="flex items-center gap-2 mb-4 border-b border-zinc-900 pb-2">
@@ -154,11 +177,10 @@ function MovieListContent() {
           </h2>
         </div>
 
-        {/* GRID POSTER FILM */}
         {filteredMovies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filteredMovies.map((movie) => (
-              <div key={movie.tmdbId} className="bg-[#1a1a1a] border border-zinc-800 hover:border-zinc-700 rounded shadow-md overflow-hidden relative group flex flex-col justify-between">
+              <div key={movie.id} className="bg-[#1a1a1a] border border-zinc-800 hover:border-zinc-700 rounded shadow-md overflow-hidden relative group flex flex-col justify-between">
                 
                 <div className="relative aspect-[2/3] w-full bg-zinc-900 overflow-hidden">
                   <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
@@ -207,7 +229,7 @@ function MovieListContent() {
           </div>
         ) : (
           <div className="text-center py-20 bg-[#1a1a1a] rounded border border-zinc-900">
-            <p className="text-sm text-zinc-500 italic">Tidak ada koleksi film yang cocok dengan filter pencarian.</p>
+            <p className="text-sm text-zinc-500 italic">Belum ada koleksi film online publik. Silakan tambahkan film via halaman admin!</p>
           </div>
         )}
 
@@ -221,12 +243,12 @@ function MovieListContent() {
   );
 }
 
-// 2. EXPORT DEFAULT UTAMA YANG DIBUNGKUS SUSPENSE (SYARAT MUTLAK VERCEL)
+// 2. EXPORT BOUNDARY UTAMA (WAJIB ADA BIAR LULUS BUILD VERCEL)
 export default function Home() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center text-xs animate-pulse">
-        Menghubungkan Jaringan KawanMovies21...
+        Menghubungkan Jaringan Cloud KawanMovies21...
       </div>
     }>
       <MovieListContent />
