@@ -1,6 +1,23 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getDatabase, ref, onValue, push, set } from 'firebase/database';
+
+// Konfigurasi Firebase resmi milikmu
+const firebaseConfig = {
+  apiKey: "AIzaSyDq136HivVcOX9cqZ7VnPliiZP5xWiD1aM",
+  authDomain: "kawanmovies21-c3ec5.firebaseapp.com",
+  databaseURL: "https://kawanmovies21-c3ec5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kawanmovies21-c3ec5",
+  storageBucket: "kawanmovies21-c3ec5.firebasestorage.app",
+  messagingSenderId: "65122230605",
+  appId: "1:65122230605:web:6986575e5ace3ade24d704",
+  measurementId: "G-DK2WJ016BW"
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getDatabase(app);
 
 export default function MovieDetail({ params }) {
   const resolvedParams = use(params);
@@ -15,34 +32,47 @@ export default function MovieDetail({ params }) {
   const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
-    // 1. Ambil data detail film
-    const savedMovies = localStorage.getItem('kawanmovies_db');
-    if (savedMovies) {
-      const movieList = JSON.parse(savedMovies);
-      const foundMovie = movieList.find((m) => m.tmdbId === tmdbId);
-      if (foundMovie) setMovie(foundMovie);
-    }
+    if (!tmdbId) return;
 
-    // 2. Ambil data komentar khusus film ini
-    const savedComments = localStorage.getItem('kawanmovies_comments');
-    if (savedComments) {
-      const allComments = JSON.parse(savedComments);
-      // Filter hanya mengambil komentar yang cocok dengan ID TMDB film ini saja
-      const movieComments = allComments.filter((c) => c.tmdbId === tmdbId);
-      setComments(movieComments);
-    }
+    // 1. Ambil data detail film dari Firebase Cloud berdasarkan ID TMDB
+    const movieRef = ref(db, `movies/${tmdbId}`);
+    const unsubscribeMovie = onValue(movieRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setMovie(data);
+      }
+      setLoading(false);
+    });
 
-    setLoading(false);
+    // 2. Ambil data komentar khusus film ini secara real-time dari Firebase Cloud
+    const commentsRef = ref(db, `comments/${tmdbId}`);
+    const unsubscribeComments = onValue(commentsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const commentList = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        // Mengurutkan komentar agar yang terbaru berada di susunan paling atas
+        setComments(commentList.reverse());
+      } else {
+        setComments([]);
+      }
+    });
+
+    return () => {
+      unsubscribeMovie();
+      unsubscribeComments();
+    };
   }, [tmdbId]);
 
-  // Fungsi mengirim komentar baru
-  const handleCommentSubmit = (e) => {
+  // Fungsi mengirim komentar baru ke Firebase Cloud publik
+  const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentName.trim() || !commentText.trim()) return alert('Nama dan isi komentar wajib diisi!');
 
-    // Buat objek komentar baru
+    // Buat objek komentar baru mengikuti struktur LK21 milikmu
     const newComment = {
-      id: Date.now(),
       tmdbId: tmdbId,
       name: commentName,
       text: commentText,
@@ -55,19 +85,17 @@ export default function MovieDetail({ params }) {
       })
     };
 
-    // Ambil semua database komentar lama dari memori browser
-    const savedComments = localStorage.getItem('kawanmovies_comments');
-    const allComments = savedComments ? JSON.parse(savedComments) : [];
+    try {
+      const movieCommentsRef = ref(db, `comments/${tmdbId}`);
+      const newCommentRef = push(movieCommentsRef);
+      await set(newCommentRef, newComment);
 
-    // Gabungkan komentar baru ke urutan paling atas
-    const updatedAllComments = [newComment, ...allComments];
-    localStorage.setItem('kawanmovies_comments', JSON.stringify(updatedAllComments));
-
-    // Update tampilan state lokal
-    setComments([newComment, ...comments]);
-
-    // Reset isi form komentar
-    setCommentText('');
+      // Reset isi form komentar
+      setCommentText('');
+      alert('Komentar kamu berhasil diterbitkan di server cloud!');
+    } catch (err) {
+      alert('Gagal mengirim opini ke server database.');
+    }
   };
 
   if (loading) {
@@ -99,7 +127,7 @@ export default function MovieDetail({ params }) {
             </h1>
           </Link>
           <Link href="/" className="text-[11px] bg-[#e91e63] hover:bg-[#c2185b] text-white font-bold px-4 py-2 rounded-sm transition-colors uppercase">
-            ⬅️ Kembali
+            Exit ⬅️ Kembali
           </Link>
         </div>
       </header>
@@ -156,7 +184,7 @@ export default function MovieDetail({ params }) {
                   <Link key={idx} href={`/?filter=${g}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">
                     {g}{idx < movie.genre.split(', ').length - 1 ? ',' : ''}
                   </Link>
-                )) : '-'}
+                ))}
               </span>
             </p>
             <p><span className="text-zinc-500 font-bold uppercase inline-block w-24">Kualitas:</span> <Link href={`/?filter=${movie.quality || 'HD'}`} className="text-blue-400 hover:text-[#e91e63] hover:underline">{movie.quality || 'HD'}</Link></p>
